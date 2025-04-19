@@ -1,0 +1,145 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Modelos principales
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  role      Role     @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model Lead {
+  id                   String    @id @default(cuid())
+  email                String    @unique
+  status               LeadStatus @default(PENDING)
+  notes                String?
+  lastContactedAt      DateTime?
+  unsubscribedAt       DateTime?
+  unsubscribeReason    String?
+  unsubscribeFeedback  String?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  submissions          Submission[]
+}
+
+enum LeadStatus {
+  PENDING
+  CONTACTED
+  CONVERTED
+  NOT_INTERESTED
+}
+
+model Submission {
+  id          String   @id @default(cuid())
+  subject     String
+  description String?
+  status      SubmissionStatus @default(IN_PROGRESS)
+  price       Float    @default(0)
+  profit      Float    @default(0)
+  dueDate     DateTime?
+  leadId      String
+  lead        Lead     @relation(fields: [leadId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+enum SubmissionStatus {
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model BlogPost {
+  id             String   @id @default(cuid())
+  title          String
+  slug           String   @unique
+  content        String
+  excerpt        String?
+  metaTitle      String?
+  metaDescription String?
+  featuredImage  String?
+  status         PostStatus @default(DRAFT)
+  viewCount      Int      @default(0)
+  categoryId     String?
+  category       Category? @relation(fields: [categoryId], references: [id])
+  authorId       String?
+  tags           TagsOnPosts[]
+  publishedAt    DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+enum PostStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  posts       BlogPost[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Tag {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  posts       TagsOnPosts[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model TagsOnPosts {
+  postId      String
+  post        BlogPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tagId       String
+  tag         Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  assignedAt  DateTime @default(now())
+
+  @@id([postId, tagId])
+}
+
+model EmailTemplate {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  subject     String
+  htmlContent String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model EmailLog {
+  id          String    @id @default(cuid())
+  recipient   String
+  subject     String
+  status      String
+  errorMessage String?
+  sentAt      DateTime  @default(now())
+}
